@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2º Desenho - Palete Mágica</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            cursor: crosshair;
+        }
+
+        .btn-next {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 25px;
+            background: #2ed573;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+
+        .btn-next:hover {
+            transform: scale(1.05);
+        }
+
+        .toast {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 10;
+            border: 2px solid #2ed573;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="game-container">
+        <div class="toast" id="toastMsg">Clique nas manchas em branco da paleta para descobrir novas cores!</div>
+        <canvas id="paintCanvas"></canvas>
+        <button class="btn-next" onclick="location.href='certificadopincel.html'">Concluir Jogo ➔</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const img = new Image();
+        img.src = 'assets/2desenho.png';
+
+        // Cores disponíveis para desbloquear na palete lateral do segundo desenho
+        const paletteColors = [
+            '#ff3b30', '#007aff',
+            '#ffcc00', '#ff9500',
+            '#34c759', '#5ac8fa',
+            '#af52de', '#ff2d55',
+            '#a2845e', '#ff9f43'
+        ];
+
+        let unlockedColors = [true, true, false, false, false, false, false, false, false, false];
+        let selectedColor = [255, 59, 48];
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            drawCustomPalette();
+        };
+
+        function drawCustomPalette() {
+            ctx.drawImage(img, 0, 0);
+
+            const barWidth = canvas.width * 0.18;
+
+            paletteColors.forEach((hex, index) => {
+                if (unlockedColors[index]) {
+                    const col = index % 2;
+                    const row = Math.floor(index / 2);
+
+                    const x = (barWidth * 0.25) + (col * (barWidth * 0.38));
+                    const y = (canvas.height * 0.12) + (row * (canvas.height * 0.16));
+
+                    ctx.fillStyle = hex;
+                    ctx.beginPath();
+                    ctx.arc(x, y, canvas.width * 0.02, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#fff';
+                    ctx.stroke();
+                }
+            });
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+            const barWidthLimit = canvas.width * 0.18;
+
+            if (clickX <= barWidthLimit) {
+                handlePaletteClick(clickX, clickY);
+            } else {
+                floodFill(Math.floor(clickX), Math.floor(clickY), selectedColor);
+            }
+        });
+
+        function handlePaletteClick(x, y) {
+            const col = x < (canvas.width * 0.09) ? 0 : 1;
+            const row = Math.floor((y / canvas.height) * 5);
+            const index = row * 2 + col;
+
+            if (index >= 0 && index < paletteColors.length) {
+                if (!unlockedColors[index]) {
+                    unlockedColors[index] = true;
+                    document.getElementById('toastMsg').innerText = "Nova cor descoberta e adicionada à paleta!";
+                    setTimeout(() => {
+                        document.getElementById('toastMsg').innerText = "Clique nas manchas em branco da paleta para descobrir novas cores!";
+                    }, 3000);
+                }
+
+                selectedColor = hexToRgb(paletteColors[index]);
+                drawCustomPalette();
+            }
+        }
+
+        function floodFill(startX, startY, fillColor) {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+
+            const startIndex = (startY * canvas.width + startX) * 4;
+            const startR = data[startIndex];
+            const startG = data[startIndex + 1];
+            const startB = data[startIndex + 2];
+
+            if (isBlackLine(startR, startG, startB) || startX < (canvas.width * 0.18)) return;
+            if (startR === fillColor[0] && startG === fillColor[1] && startB === fillColor[2]) return;
+
+            const queue = [[startX, startY]];
+            const visited = new Uint8Array(canvas.width * canvas.height);
+
+            while (queue.length > 0) {
+                const [x, y] = queue.pop();
+                const pixelIndex = y * canvas.width + x;
+
+                if (x < Math.floor(canvas.width * 0.18) || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+                if (visited[pixelIndex]) continue;
+
+                const currentIdx = (y * canvas.width + x) * 4;
+                const r = data[currentIdx];
+                const g = data[currentIdx + 1];
+                const b = data[currentIdx + 2];
+
+                if (Math.abs(r - startR) < 35 && Math.abs(g - startG) < 35 && Math.abs(b - startB) < 35 && !isBlackLine(r, g, b)) {
+                    data[currentIdx] = fillColor[0];
+                    data[currentIdx + 1] = fillColor[1];
+                    data[currentIdx + 2] = fillColor[2];
+
+                    visited[pixelIndex] = 1;
+
+                    queue.push([x + 1, y]);
+                    queue.push([x - 1, y]);
+                    queue.push([x, y + 1]);
+                    queue.push([x, y - 1]);
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function isBlackLine(r, g, b) {
+            return r < 60 && g < 60 && b < 60;
+        }
+
+        function hexToRgb(hex) {
+            const bigint = parseInt(hex.replace('#', ''), 16);
+            return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+        }
+    </script>
+</body>
+
+</html>

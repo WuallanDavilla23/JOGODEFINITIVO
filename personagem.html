@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selecionar Personagem</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .tela-fundo {
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+        }
+
+        .char-btn {
+            position: absolute;
+            cursor: pointer;
+        }
+
+        #char-1 {
+            top: 28%;
+            left: 10%;
+            width: 25%;
+            height: 52%;
+            border-radius: 20px;
+        }
+
+        #char-2 {
+            top: 30%;
+            left: 38%;
+            width: 25%;
+            height: 50%;
+            border-radius: 20px;
+        }
+
+        #char-3 {
+            top: 30%;
+            left: 66%;
+            width: 25%;
+            height: 50%;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <img src="assets/personagem.png" alt="Selecionar Personagem" class="tela-fundo">
+    <div class="char-btn" id="char-1" onclick="location.href='modo.html'" title="Personagem 1"></div>
+    <div class="char-btn" id="char-2" onclick="location.href='modo.html'" title="Personagem 2"></div>
+    <div class="char-btn" id="char-3" onclick="location.href='modo.html'" title="Personagem 3"></div>
+</body>
+
+</html>
